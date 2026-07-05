@@ -1,532 +1,374 @@
-# 채팅 기능 API 설계
+# 채팅 기능 REST API 설계
 
-## 1. 문서 목적
+## 1. 목적
 
-본 문서는 TranslaCat 채팅 기능 Phase 1 개발에 필요한 REST API를 정의한다.
-
-Phase 1에서는 REST API와 WebSocket의 역할을 분리한다.
-
-REST API는 채팅방 생성, 채팅방 목록/상세 조회, 멤버 조회, 메시지 이력 조회, 사용자별 언어 설정 조회/변경/초기화, WebSocket 장애 시 보조 메시지 저장 경로를 담당한다.
-
-실시간 메시지 송수신, 신규 메시지 수신, 번역 완료/실패 알림은 WebSocket 이벤트에서 처리한다.
+Phase 1 기본 채팅 API와 Phase 1.5 프로필/친구/차단/친구 채팅 API를 통합 정리한다.
 
 ## 2. 공통 규칙
 
-### 2.1 Base URL
+Base URL:
 
-```txt
-/api/v1/chat
+```text
+/api/v1
 ```
 
-### 2.2 인증
+공개 API가 아닌 경우 JWT 로그인 사용자를 기준으로 처리한다.
 
-모든 API는 로그인 사용자를 전제로 한다.
-
-```txt
-Authorization: Bearer {accessToken}
-```
-
-### 2.3 공통 응답 구조
-
-모든 API 응답은 공통 응답 래퍼를 사용한다.
+공통 응답 예시:
 
 ```json
 {
-  "data": {}
+  "resultCode": 200,
+  "message": "success",
+  "body": {},
+  "guid": null,
+  "createDate": "2026-07-05 18:00:00"
 }
 ```
 
-실제 응답 필드는 `data` 내부에 위치한다.
-
-### 2.4 권한 기준
-
-* 채팅방 접근 권한은 `chat_room_member`를 기준으로 확인한다.
-* `active = true`이고 `deleted_at is null`인 멤버만 접근 가능한 멤버로 본다.
-* 채팅방 멤버가 아닌 사용자는 채팅방 상세, 멤버 목록, 메시지 목록을 조회할 수 없다.
-* 채팅방 멤버가 아닌 사용자는 메시지를 저장할 수 없다.
-
-### 2.5 Phase 1 API 설계 기준
-
-* Phase 1 채팅방 생성 요청은 `memberUserIds`를 사용한다.
-* `memberUserIds`는 내부 사용자 ID 기반의 Phase 1 임시 구조이다.
-* Phase 1.5에서는 publicId 기반 사용자 검색 및 초대 요청으로 전환한다.
-* Phase 1 채팅방 생성은 기본적으로 `sourceType = MANUAL`로 생성한다.
-* 메시지 목록 조회는 cursor 기반으로 처리한다.
-* offset 기반 페이지네이션은 사용하지 않는다.
-* 메시지 원문 저장과 번역 처리는 분리한다.
-* 번역 결과는 메시지 응답의 `translations`에 포함한다.
+실제 응답 데이터는 `body`에 포함한다.
 
 ## 3. API 목록
 
-| 구분           | Method | URL                                                    | Phase 1    |
-| ------------ | ------ | ------------------------------------------------------ | ---------- |
-| 채팅방 생성       | POST   | `/api/v1/chat/rooms`                                   | 포함         |
-| 내 채팅방 목록 조회  | GET    | `/api/v1/chat/rooms`                                   | 포함         |
-| 채팅방 상세 조회    | GET    | `/api/v1/chat/rooms/{chatRoomId}`                      | 포함         |
-| 채팅방 멤버 목록 조회 | GET    | `/api/v1/chat/rooms/{chatRoomId}/members`              | 포함         |
-| 내 언어 설정 조회   | GET    | `/api/v1/chat/rooms/{chatRoomId}/members/me/language`  | 포함         |
-| 내 언어 설정 변경   | PATCH  | `/api/v1/chat/rooms/{chatRoomId}/members/me/language`  | 포함         |
-| 내 언어 설정 초기화  | DELETE | `/api/v1/chat/rooms/{chatRoomId}/members/me/language`  | 포함         |
-| 메시지 목록 조회    | GET    | `/api/v1/chat/rooms/{chatRoomId}/messages`             | 포함         |
-| REST 메시지 저장  | POST   | `/api/v1/chat/rooms/{chatRoomId}/messages`             | 포함         |
-| 채팅방 멤버 추가    | POST   | `/api/v1/chat/rooms/{chatRoomId}/members`              | Phase 1 제외 |
-| 채팅방 퇴실       | DELETE | `/api/v1/chat/rooms/{chatRoomId}/members/me`           | Phase 1 제외 |
-| 메시지 삭제       | DELETE | `/api/v1/chat/rooms/{chatRoomId}/messages/{messageId}` | Phase 1 제외 |
+### 프로필/사용자
+- `GET /api/v1/users/me/profile`
+- `PATCH /api/v1/users/me/profile`
+- `GET /api/v1/users/search?publicId={publicId}`
 
-## 4. 채팅방 생성
+### 친구 요청
+- `POST /api/v1/friend-requests`
+- `GET /api/v1/friend-requests/received`
+- `GET /api/v1/friend-requests/sent`
+- `PATCH /api/v1/friend-requests/{requestId}/accept`
+- `PATCH /api/v1/friend-requests/{requestId}/reject`
+- `PATCH /api/v1/friend-requests/{requestId}/cancel`
 
-### 4.1 기본 정보
+### 친구
+- `GET /api/v1/friends`
+- `DELETE /api/v1/friends/{friendUserId}`
 
-```txt
+### 차단
+- `POST /api/v1/blocks`
+- `GET /api/v1/blocks`
+- `DELETE /api/v1/blocks/{blockedUserId}`
+
+### 친구 채팅
+- `POST /api/v1/chat/friends/{friendUserId}/direct-room`
+- `POST /api/v1/chat/friends/group-rooms`
+
+### 기존 채팅
+- `POST /api/v1/chat/rooms`
+- `GET /api/v1/chat/rooms`
+- `GET /api/v1/chat/rooms/{roomId}`
+- `GET /api/v1/chat/rooms/{roomId}/messages`
+- `POST /api/v1/chat/rooms/{roomId}/messages`
+
+메시지/WebSocket/번역/언어 설정 세부 흐름은 Phase 1 설계를 유지한다.
+
+## 4. 내 프로필 조회
+
+```http
+GET /api/v1/users/me/profile
+```
+
+예시:
+
+```json
+{
+  "resultCode": 200,
+  "message": "success",
+  "body": {
+    "userId": 1,
+    "publicId": "TC-H6VR-9KQD",
+    "nickname": "krumi",
+    "profileImageUrl": null,
+    "bio": "안녕하세요"
+  },
+  "guid": null,
+  "createDate": "2026-07-05 18:00:00"
+}
+```
+
+## 5. 내 프로필 수정
+
+```http
+PATCH /api/v1/users/me/profile
+```
+
+Request:
+
+```json
+{
+  "nickname": "krumi",
+  "profileImageUrl": "https://example.com/profile.png",
+  "bio": "안녕하세요"
+}
+```
+
+정책:
+- publicId 수정 불가
+- nickname validation 적용
+- profileImageUrl/bio는 정책 범위에서 null 가능
+- 파일 업로드는 후속 이슈
+
+## 6. publicId 사용자 검색
+
+```http
+GET /api/v1/users/search?publicId=TC-PFSN-CLNA
+```
+
+대표 정보:
+- userId
+- publicId
+- nickname
+- profileImageUrl
+- 친구 관계 상태
+- 차단 관련 액션 가능 여부
+
+정책:
+- 자기 자신 요청 방지
+- 이미 친구인 경우 중복 요청 방지
+- PENDING 중복 방지
+- 차단 관계 요청 제한
+
+## 7. 친구 요청 전송
+
+```http
+POST /api/v1/friend-requests
+```
+
+```json
+{
+  "receiverPublicId": "TC-PFSN-CLNA"
+}
+```
+
+조건:
+- 대상 존재
+- 자기 자신 아님
+- 이미 친구 아님
+- 동일 PENDING 없음
+- 양방향 차단 관계 없음
+
+성공 시 상태는 `PENDING`.
+
+## 8. 받은/보낸 요청
+
+```http
+GET /api/v1/friend-requests/received
+GET /api/v1/friend-requests/sent
+```
+
+FE 알림 센터에서:
+- 받은 요청: 수락/거절
+- 보낸 요청: 취소
+
+## 9. 요청 상태 변경
+
+수락:
+
+```http
+PATCH /api/v1/friend-requests/{requestId}/accept
+```
+
+- 수신자만 가능
+- PENDING만 가능
+- 성공 시 친구 관계 생성
+- 중복 관계 생성 금지
+
+거절:
+
+```http
+PATCH /api/v1/friend-requests/{requestId}/reject
+```
+
+- 수신자만 가능
+- PENDING만 가능
+- `REJECTED` 전환
+
+취소:
+
+```http
+PATCH /api/v1/friend-requests/{requestId}/cancel
+```
+
+- 발신자만 가능
+- PENDING만 가능
+- `CANCELED` 전환
+
+## 10. 친구 목록/삭제
+
+```http
+GET /api/v1/friends
+```
+
+친구 카드 대표 정보:
+- friend userId
+- publicId
+- nickname
+- profileImageUrl
+- 친구 관계 정보
+
+사용처:
+- 목록 표시
+- 검색 필터
+- FRIEND DIRECT
+- FRIEND GROUP 멤버 선택
+
+삭제:
+
+```http
+DELETE /api/v1/friends/{friendUserId}
+```
+
+- 친구 관계 제거
+- 기존 방/메시지는 삭제하지 않음
+- 신규 친구 채팅 시작 가능 여부는 현재 관계 기준으로 검증
+
+## 11. 차단
+
+차단:
+
+```http
+POST /api/v1/blocks
+```
+
+```json
+{
+  "blockedPublicId": "TC-3567-W4EZ"
+}
+```
+
+정책:
+- 자기 자신 차단 불가
+- 중복 차단 불가
+- 친구 요청 제한
+- FRIEND DIRECT 신규 시작 제한
+- FRIEND GROUP 선택/생성 제한
+- 차단 후 친구 목록에서 제외
+
+목록:
+
+```http
+GET /api/v1/blocks
+```
+
+해제:
+
+```http
+DELETE /api/v1/blocks/{blockedUserId}
+```
+
+해제 후 이전 친구 관계는 자동 복구하지 않는 것을 기본으로 한다.
+
+## 12. FRIEND DIRECT
+
+```http
+POST /api/v1/chat/friends/{friendUserId}/direct-room
+```
+
+Request body 없음.
+
+처리:
+1. 인증 사용자 확인
+2. 대상 사용자 확인
+3. 친구 관계 확인
+4. 양방향 차단 확인
+5. 동일 사용자 조합의 `DIRECT + FRIEND` 조회
+6. 있으면 기존 방 반환
+7. 없으면 신규 생성
+8. 양 사용자를 멤버로 등록
+9. 방 응답 반환
+
+정책:
+- `roomType = DIRECT`
+- `sourceType = FRIEND`
+- MANUAL DIRECT는 재사용하지 않음
+
+대표 응답:
+
+```json
+{
+  "resultCode": 200,
+  "message": "success",
+  "body": {
+    "id": 10,
+    "roomType": "DIRECT",
+    "sourceType": "FRIEND",
+    "name": null,
+    "description": null,
+    "memberCount": 2,
+    "active": true
+  },
+  "guid": null,
+  "createDate": "2026-07-05 18:00:00"
+}
+```
+
+## 13. FRIEND GROUP
+
+```http
+POST /api/v1/chat/friends/group-rooms
+```
+
+Request:
+
+```json
+{
+  "name": "주말 일본어 공부방",
+  "description": "친구들과 일본어를 공부하는 방",
+  "memberUserIds": [2, 3]
+}
+```
+
+처리:
+1. 인증 사용자 확인
+2. 멤버 목록 중복/유효성 검증
+3. 모두 현재 친구인지 확인
+4. 양방향 차단 확인
+5. `GROUP + FRIEND` 방 생성
+6. 생성자를 OWNER로 추가
+7. 선택 친구를 MEMBER로 추가
+8. 방 응답 반환
+
+정책:
+- memberUserIds에 자기 자신 미포함
+- 모든 대상은 현재 친구
+- 차단 관계 사용자 포함 불가
+- Phase 1.5에서는 동일 멤버 조합 그룹 중복 생성 허용
+
+## 14. 기존 MANUAL API
+
+```http
 POST /api/v1/chat/rooms
 ```
 
-1:1 채팅방 또는 그룹 채팅방을 생성한다.
-
-Phase 1에서는 `memberUserIds`를 사용한다. 이 값은 내부 사용자 ID 기반의 임시 구조이며, Phase 1.5에서 publicId 기반 요청으로 전환한다.
-
-### 4.2 Request
-
-```json
-{
-  "roomType": "DIRECT",
-  "name": null,
-  "description": null,
-  "memberUserIds": [2]
-}
-```
-
-### 4.3 Request fields
-
-| 필드            | 타입       | 필수 | 설명                 |
-| ------------- | -------- | -: | ------------------ |
-| roomType      | string   |  Y | DIRECT, GROUP      |
-| name          | string   |  N | 채팅방 이름. GROUP에서 사용 |
-| description   | string   |  N | 채팅방 설명             |
-| memberUserIds | number[] |  Y | 초대 대상 사용자 ID 목록    |
-
-### 4.4 처리 기준
-
-* DIRECT 생성 시 `memberUserIds`는 1명이어야 한다.
-* GROUP 생성 시 `memberUserIds`는 1명 이상이어야 한다.
-* 로그인 사용자는 자동으로 OWNER 멤버가 된다.
-* 생성 대상 사용자는 MEMBER 멤버가 된다.
-* Phase 1 생성 채팅방은 `sourceType = MANUAL`을 사용한다.
-* 같은 사용자 조합의 DIRECT 방이 이미 존재하고 `sourceType = MANUAL`이면 기존 방을 반환할 수 있다.
-* OPEN roomType 생성은 Phase 1에서 허용하지 않는다.
-
-### 4.5 Response
-
-```json
-{
-  "data": {
-    "id": 1,
-    "roomType": "DIRECT",
-    "sourceType": "MANUAL",
-    "name": null,
-    "description": null,
-    "ownerId": 1,
-    "active": true,
-    "originalLanguageCode": "ko",
-    "translationLanguageCode": "ja",
-    "roomLanguageSettingApplied": false,
-    "memberCount": 2,
-    "createdAt": "2026-06-27T10:00:00",
-    "updatedAt": "2026-06-27T10:00:00"
-  }
-}
-```
-
-## 5. 내 채팅방 목록 조회
-
-### 5.1 기본 정보
-
-```txt
-GET /api/v1/chat/rooms
-```
-
-로그인 사용자가 참여 중인 채팅방 목록을 조회한다.
-
-### 5.2 Response
-
-```json
-{
-  "data": {
-    "chatRooms": [
-      {
-        "id": 1,
-        "roomType": "DIRECT",
-        "sourceType": "MANUAL",
-        "name": null,
-        "description": null,
-        "ownerId": 1,
-        "memberCount": 2,
-        "createdAt": "2026-06-27T10:00:00",
-        "updatedAt": "2026-06-27T10:10:00"
-      }
-    ]
-  }
-}
-```
-
-### 5.3 Response fields
-
-| 필드                      | 타입          | 설명                       |
-| ----------------------- | ----------- | ------------------------ |
-| chatRooms               | array       | 채팅방 목록                   |
-| chatRooms[].id          | number      | 채팅방 ID                   |
-| chatRooms[].roomType    | string      | DIRECT, GROUP, OPEN      |
-| chatRooms[].sourceType  | string      | MANUAL, FRIEND, OPEN, AI |
-| chatRooms[].name        | string/null | 채팅방 이름                   |
-| chatRooms[].description | string/null | 채팅방 설명                   |
-| chatRooms[].ownerId     | number/null | 채팅방 소유자 ID               |
-| chatRooms[].memberCount | number      | active 멤버 수              |
-| chatRooms[].createdAt   | string      | 생성일시                     |
-| chatRooms[].updatedAt   | string      | 수정일시                     |
-
-## 6. 채팅방 상세 조회
-
-### 6.1 기본 정보
-
-```txt
-GET /api/v1/chat/rooms/{chatRoomId}
-```
-
-로그인 사용자가 참여 중인 특정 채팅방의 상세 정보를 조회한다.
-
-### 6.2 Path parameters
-
-| 파라미터       | 타입     | 설명     |
-| ---------- | ------ | ------ |
-| chatRoomId | number | 채팅방 ID |
-
-### 6.3 Response
-
-```json
-{
-  "data": {
-    "id": 1,
-    "roomType": "DIRECT",
-    "sourceType": "MANUAL",
-    "name": null,
-    "description": null,
-    "ownerId": 1,
-    "active": true,
-    "originalLanguageCode": "ko",
-    "translationLanguageCode": "ja",
-    "roomLanguageSettingApplied": false,
-    "memberCount": 2,
-    "createdAt": "2026-06-27T10:00:00",
-    "updatedAt": "2026-06-27T10:10:00"
-  }
-}
-```
-
-### 6.4 권한 조건
-
-* 로그인 사용자가 해당 채팅방의 active 멤버여야 한다.
-* 멤버가 아닌 경우 접근을 차단한다.
-
-## 7. 채팅방 멤버 목록 조회
-
-### 7.1 기본 정보
-
-```txt
-GET /api/v1/chat/rooms/{chatRoomId}/members
-```
-
-채팅방의 active 멤버 목록을 조회한다.
-
-### 7.2 Response
-
-```json
-{
-  "data": {
-    "members": [
-      {
-        "id": 1,
-        "chatRoomId": 1,
-        "userId": 1,
-        "name": "사용자A",
-        "email": "user-a@example.com",
-        "role": "OWNER",
-        "active": true,
-        "joinedAt": "2026-06-27T10:00:00",
-        "leftAt": null
-      }
-    ]
-  }
-}
-```
-
-### 7.3 권한 조건
-
-* 로그인 사용자가 해당 채팅방의 active 멤버여야 한다.
-
-## 8. 내 채팅방 언어 설정 조회
-
-### 8.1 기본 정보
-
-```txt
-GET /api/v1/chat/rooms/{chatRoomId}/members/me/language
-```
-
-로그인 사용자의 해당 채팅방 언어 설정을 조회한다.
-
-### 8.2 Response
-
-```json
-{
-  "data": {
-    "chatRoomId": 1,
-    "userId": 1,
-    "originalLanguageCode": "ko",
-    "translationLanguageCode": "ja",
-    "showOriginal": true,
-    "showTranslation": true,
-    "roomLanguageSettingApplied": false
-  }
-}
-```
-
-## 9. 내 채팅방 언어 설정 변경
-
-### 9.1 기본 정보
-
-```txt
-PATCH /api/v1/chat/rooms/{chatRoomId}/members/me/language
-```
-
-로그인 사용자의 해당 채팅방 한정 언어 설정을 변경한다.
-
-### 9.2 Request
-
-```json
-{
-  "originalLanguageCode": "ko",
-  "translationLanguageCode": "ja",
-  "showOriginal": true,
-  "showTranslation": true
-}
-```
-
-### 9.3 Request fields
-
-| 필드                      | 타입      | 필수 | 설명       |
-| ----------------------- | ------- | -: | -------- |
-| originalLanguageCode    | string  |  Y | 원문 기준 언어 |
-| translationLanguageCode | string  |  Y | 수신 번역 언어 |
-| showOriginal            | boolean |  Y | 원문 표시 여부 |
-| showTranslation         | boolean |  Y | 번역 표시 여부 |
-
-### 9.4 Response
-
-```json
-{
-  "data": {
-    "chatRoomId": 1,
-    "userId": 1,
-    "originalLanguageCode": "ko",
-    "translationLanguageCode": "ja",
-    "showOriginal": true,
-    "showTranslation": true,
-    "roomLanguageSettingApplied": true
-  }
-}
-```
-
-## 10. 내 채팅방 언어 설정 초기화
-
-### 10.1 기본 정보
-
-```txt
-DELETE /api/v1/chat/rooms/{chatRoomId}/members/me/language
-```
-
-로그인 사용자의 해당 채팅방 언어 설정을 초기화하고 기본 언어 설정을 따르도록 되돌린다.
-
-### 10.2 Response
-
-```json
-{
-  "data": {
-    "chatRoomId": 1,
-    "userId": 1,
-    "originalLanguageCode": "ko",
-    "translationLanguageCode": "ja",
-    "showOriginal": true,
-    "showTranslation": true,
-    "roomLanguageSettingApplied": false
-  }
-}
-```
-
-## 11. 메시지 목록 조회
-
-### 11.1 기본 정보
-
-```txt
-GET /api/v1/chat/rooms/{chatRoomId}/messages
-```
-
-채팅방의 최신 메시지 또는 cursorId 기준 이전 메시지를 조회한다.
-
-### 11.2 Query parameters
-
-| 파라미터     | 타입     | 필수 | 설명                  |
-| -------- | ------ | -: | ------------------- |
-| cursorId | number |  N | 이전 메시지 조회 기준 메시지 ID |
-
-### 11.3 요청 예시
-
-```txt
-GET /api/v1/chat/rooms/1/messages
-GET /api/v1/chat/rooms/1/messages?cursorId=100
-```
-
-### 11.4 Response
-
-```json
-{
-  "data": {
-    "messages": [
-      {
-        "id": 101,
-        "chatRoomId": 1,
-        "senderUserId": 1,
-        "senderName": "사용자A",
-        "senderEmail": "user-a@example.com",
-        "senderType": "USER",
-        "messageType": "TEXT",
-        "content": "안녕하세요",
-        "status": "SENT",
-        "translations": [
-          {
-            "id": 1001,
-            "languageCode": "ja",
-            "translatedContent": "こんにちは",
-            "status": "COMPLETED",
-            "failureReason": null,
-            "completedAt": "2026-06-27T10:10:05"
-          }
-        ],
-        "createdAt": "2026-06-27T10:10:00",
-        "updatedAt": "2026-06-27T10:10:00"
-      }
-    ],
-    "nextCursorId": 101,
-    "hasNext": true
-  }
-}
-```
-
-### 11.5 처리 기준
-
-* `cursorId`가 없으면 최신 메시지 목록을 조회한다.
-* `cursorId`가 있으면 해당 ID보다 이전 메시지를 조회한다.
-* 응답에는 다음 조회에 사용할 `nextCursorId`를 포함한다.
-* 더 조회할 메시지가 있으면 `hasNext = true`를 반환한다.
-* 번역 결과는 `translations` 배열에 포함한다.
-* 번역이 없으면 `translations = []`를 반환한다.
-
-## 12. REST 기반 메시지 저장
-
-### 12.1 기본 정보
-
-```txt
-POST /api/v1/chat/rooms/{chatRoomId}/messages
-```
-
-채팅방에 텍스트 메시지 원문을 저장한다.
-
-Phase 1의 기본 메시지 송신 경로는 WebSocket이지만, REST 메시지 저장 API는 WebSocket 구현 전 테스트 및 WebSocket 장애 시 fallback 경로로 사용할 수 있다.
-
-### 12.2 Request
-
-```json
-{
-  "content": "안녕하세요"
-}
-```
-
-### 12.3 Response
-
-```json
-{
-  "data": {
-    "id": 101,
-    "chatRoomId": 1,
-    "senderUserId": 1,
-    "senderName": "사용자A",
-    "senderEmail": "user-a@example.com",
-    "senderType": "USER",
-    "messageType": "TEXT",
-    "content": "안녕하세요",
-    "status": "SENT",
-    "translations": [],
-    "createdAt": "2026-06-27T10:10:00",
-    "updatedAt": "2026-06-27T10:10:00"
-  }
-}
-```
-
-### 12.4 처리 기준
-
-* 로그인 사용자가 채팅방 active 멤버여야 한다.
-* 메시지 원문을 먼저 저장한다.
-* 번역 처리는 메시지 저장과 분리한다.
-* 번역 요청/결과 반영은 비동기 처리한다.
-* WebSocket 사용 가능 시 FE는 WebSocket 송신을 우선 사용한다.
-
-## 13. Phase 1 제외 API
-
-### 13.1 채팅방 멤버 추가
-
-```txt
-POST /api/v1/chat/rooms/{chatRoomId}/members
-```
-
-Phase 1에서는 제외한다.
-
-Phase 1.5에서 친구 목록 기반 그룹 초대 또는 publicId 기반 초대 요청으로 재설계한다.
-
-### 13.2 채팅방 퇴실
-
-```txt
-DELETE /api/v1/chat/rooms/{chatRoomId}/members/me
-```
-
-Phase 1에서는 제외한다.
-
-Phase 1.5에서 친구 그룹 채팅 및 초대 수락/거절 정책과 함께 재검토한다.
-
-### 13.3 메시지 삭제
-
-```txt
-DELETE /api/v1/chat/rooms/{chatRoomId}/messages/{messageId}
-```
-
-Phase 1에서는 제외한다.
-
-`ChatMessageStatus = DELETED` 구조는 존재하지만, 사용자 삭제 API는 Phase 1.5 또는 Phase 2에서 재검토한다.
-
-## 14. REST API와 WebSocket 역할 구분
-
-| 처리           | REST API | WebSocket |
-| ------------ | -------: | --------: |
-| 채팅방 생성       |        Y |         N |
-| 채팅방 목록 조회    |        Y |         N |
-| 채팅방 상세 조회    |        Y |         N |
-| 채팅방 멤버 목록 조회 |        Y |         N |
-| 메시지 초기/과거 조회 |        Y |         N |
-| 메시지 실시간 송신   | fallback |         Y |
-| 메시지 실시간 수신   |        N |         Y |
-| 번역 완료 알림     |        N |         Y |
-| 번역 실패 알림     |        N |         Y |
-| 언어 설정 조회/변경  |        Y |         N |
-
-## 15. 비고
-
-Phase 1의 API 설계는 기본 채팅 MVP를 완성하기 위한 최소 범위로 정의한다.
-
-친구 추가, 친구 목록, publicId 기반 사용자 검색, 그룹 초대, 채팅방 퇴실, 메시지 삭제, 오픈 채팅, AI 참여자 관련 API는 Phase 1.5 또는 Phase 2에서 별도 설계한다.
+유지 정책:
+- API/기능 삭제 안 함
+- 기존 MANUAL 방 목록/상세/메시지 유지
+- 일반 사용자 UI에서는 내부 userId 직접 입력 생성 흐름 비노출
+- 정상 사용자 진입점은 친구 목록 기반 API
+
+## 15. FE 상태/오류 처리
+
+구분:
+- Loading
+- Empty
+- Validation Error
+- API Error
+- Retry 가능 상태
+- 인증 만료
+- 관계/권한 검증 실패
+
+채팅방 이동 후 방 상세, 메시지, 언어 설정, WebSocket 흐름이 정상 연결되어야 한다.
+
+## 16. Phase 2 확장
+
+기존 채팅 구조를 유지하며 sourceType과 정책을 확장한다.
+
+- OPEN
+- AI
+- 가상 프로필
+- AI 멤버
+- 공개방 검색
+- 운영/신고 기능
