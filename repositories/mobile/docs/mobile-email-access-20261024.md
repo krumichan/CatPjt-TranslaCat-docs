@@ -40,9 +40,17 @@
 
 2026-10-24の共通Mac検証job `20261024T103037277Z-mac-0f84ace2`で、画面改善を含む固定ソース206ファイルのlint・typecheck・全598テスト・設定・Android/iOS JS export・iOSプロジェクト生成（`prebuild --no-install`）がすべて終了コード0で通過した。入力とlockfileに変更はなく、ソース差分は0件。ソースmanifestのSHA-256は`95ebd0f961adfe7db49ac3a841447c5bbad3015158478401583bd09e162c8a0d`。
 
-사용자는 이번 UI 변경의 새 APK 실기기 테스트를 생략했다(`WAIVED_BY_USER_NOT_TESTED`). 이 개선을 담은 새 Android APK는 만들지 않았고, 화면 배치·키보드 동작을 실제 기기에서 수락한 것으로 표시하지 않는다. iOS native 컴파일과 Simulator 기동도 아직 실행하지 않았다.
+이 UI의 개발일은 2026-10-24이며, 같은 고정 소스의 iOS native 검증은 2026-10-25 00:32~00:42 KST에 실행했다. Mac job `20261024T150125788Z-mac-00c8ef20`은 코드 서명 없는 Release arm64 Simulator 앱을 빌드·설치·기동하고 24개 단계를 모두 종료 코드 0으로 마쳤다. 실제 첫 화면에서 게스트 채팅 홈·로그인 버튼·하단 탭을 확인했고 오류 overlay는 보이지 않았다. 작업 전용 Simulator의 종료도 확인했다. 공용 중계의 읽기 파일 경합으로 한때 큐 상태가 `Unconfirmed`에 머물렀으나, 같은 JobId·token·결과 SHA를 대조한 복구로 2026-10-25 02:19:33 KST에 `Released`·종료 코드 0을 확인했다. 02:21 KST에는 같은 job의 정상 결과 회수도 완료했다. 앱 실행 성공 시각과 이후 공용 큐 해제 시각을 구분한다.
 
-ユーザーは今回のUI変更について、新APKの実機テストを省略した（`WAIVED_BY_USER_NOT_TESTED`）。この改善を含む新Android APKは作成しておらず、画面配置・キーボード動作が実機で受け入れ済みとは扱わない。iOS nativeコンパイルとSimulator起動も未実行。
+このUIの開発日は2026-10-24で、同じ固定ソースのiOS native検証は2026-10-25 00:32~00:42 KSTに実行した。Mac job `20261024T150125788Z-mac-00c8ef20`でコード署名なしのRelease arm64 Simulatorアプリをビルド・インストール・起動し、全24段階が終了コード0で完了した。実際の初期画面ではゲストのチャットホーム・ログインボタン・下部タブを確認し、エラーoverlayは見られなかった。専用Simulatorの終了も確認済み。共通中継の読み取りファイル競合でキュー状態が一時`Unconfirmed`に留まったが、同じJobId・token・結果SHAを照合した復旧により2026-10-25 02:19:33 KSTに`Released`・終了コード0を確認した。02:21 KSTには同じjobの通常結果回収も完了した。アプリ起動成功の時刻と、その後の共通キュー解放時刻を区別する。
+
+598テストを通過したJS検証はAPI未指定、Simulator nativeビルドは公開API `https://217.142.230.186/api/v1`を実行設定へ明示した。APIは生成設定とアプリ内のExpo設定から確認しており、環境の異なるbundleを同一成果物とは扱わない。詳細な入力・成果物の根拠は[iOS無料準備](mobile-ios-free-preparation-20261024.md)に記録する。
+
+598개 테스트를 통과한 JS 검증은 API 미지정, Simulator native 빌드는 공개 API `https://217.142.230.186/api/v1`을 실행 설정에 명시했다. API는 생성 설정과 앱 내부 Expo 설정에서 확인했으며, 환경이 다른 bundle을 동일 산출물로 취급하지 않는다. 입력·산출물의 상세 근거는 [iOS 무료 준비](mobile-ios-free-preparation-20261024.md)에 기록한다.
+
+사용자는 이번 UI 변경의 새 APK 실기기 테스트를 생략했다(`WAIVED_BY_USER_NOT_TESTED`). 이 개선을 담은 새 Android APK는 만들지 않았다. Simulator 홈 화면 확인을 생년월일 선택·오류 표시·키보드 동작의 실제 기기 수락으로 확대하지 않는다. Apple 로그인은 미구현이고 운영 APNs·실제 계정 가입·메일 발송·비밀번호 변경도 이번 검증에서 확인하지 않았다.
+
+ユーザーは今回のUI変更について新APKの実機テストを省略した（`WAIVED_BY_USER_NOT_TESTED`）。この改善を含む新Android APKは作成していない。Simulatorのホーム画面確認を生年月日選択・エラー表示・キーボード動作の実機受け入れへ拡大しない。Appleログインは未実装で、本番APNs・実際のアカウント登録・メール送信・パスワード変更も今回の検証対象には含めていない。
 
 ## 문서 연결 / 文書へのリンク
 

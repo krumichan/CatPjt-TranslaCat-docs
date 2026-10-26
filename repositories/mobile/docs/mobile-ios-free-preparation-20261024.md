@@ -47,13 +47,36 @@ Xcode初回設定でログインやライセンス操作が必要なら、具体
 
 실제 생성한 프로젝트에서 scheme `TranslaCatDev`, bundle identifier `com.krumichan.translacat.dev`, deployment target `16.4`, URL scheme `translacat-dev`·`com.krumichan.translacat.dev`·`exp+translacat-mobile`을 확인했다. 사진 라이브러리 이용 설명은 있고 카메라·마이크 이용 설명은 없다. 기존 알림 설정에서 생성된 `aps-environment: development`는 APNs 자격 발급이나 운영 알림 성공을 의미하지 않는다.
 
-이번 JS 검증은 API 주소를 지정하지 않은 설정으로 실행했다. 이후 Simulator native 빌드는 확정된 공개 API를 별도 실행 설정으로 지정하고 생성 설정·bundle 근거를 남긴다. 이 환경 차이가 있는 두 bundle을 동일한 산출물로 취급하지 않는다.
+## 2026-10-25 Simulator 실행 결과 / Simulator実行結果
 
-今回のJS検証はAPIアドレス未指定の設定で実行した。後続のSimulator nativeビルドでは確定した公開APIを実行設定として明示し、生成設定とbundleの証拠を残す。環境の異なる二つのbundleを同一成果物とは扱わない。
+가입 UI와 고정 소스의 개발일은 2026-10-24다. native 검증은 2026-10-25 00:32~00:42 KST에 별도로 실행했다. Mac job `20261024T150125788Z-mac-00c8ef20`(FIFO 117)의 worker 결과는 `Passed`·종료 코드 0이며, 의존성 설치·Pod 설치·Release arm64 빌드·Simulator 설치·기동·스크린샷을 포함한 24개 단계가 모두 종료 코드 0으로 끝났다. 입력은 검증된 소스 206개와 공개 제어 파일 1개이며, 입력 변경과 소스 차이는 0개였다.
 
-실제 iOS native 컴파일·Simulator 기동·로그인 복귀·사진 선택·키보드 동작은 아직 검증하지 않았다. 전체 Xcode와 Simulator 런타임 준비가 남아 있으며, 무료 Apple 계정으로 Xcode 26.6을 직접 다운로드하는 조치는 이미 사용자에게 안내했다. 이 UI 변경의 새 Android APK도 만들지 않았다. 사용자가 생략한 APK 실기기 테스트는 `WAIVED_BY_USER_NOT_TESTED`로 보존한다.
+登録UIと固定ソースの開発日は2026-10-24。native検証は2026-10-25 00:32~00:42 KSTに別途実行した。Mac job `20261024T150125788Z-mac-00c8ef20`（FIFO 117）のworker結果は`Passed`・終了コード0で、依存関係・Podインストール・Release arm64ビルド・Simulatorインストール・起動・スクリーンショットを含む全24段階が終了コード0で完了した。入力は検証済みソース206ファイルと公開制御ファイル1個で、入力変更とソース差分は0件。
 
-iOS nativeコンパイル・Simulator起動・認証復帰・写真選択・キーボード動作は未検証。full XcodeとSimulator runtimeの準備が残り、無料Apple AccountによるXcode 26.6のダウンロード操作はすでにユーザーへ案内した。このUI変更の新Android APKも作成していない。ユーザーが省略したAPK実機テストは`WAIVED_BY_USER_NOT_TESTED`として保持する。
+사용한 도구는 작업 프로세스에서 선택한 Xcode `26.6`(17F113), Ruby `3.3.13`, CocoaPods `1.17.0`이다. iOS `26.5`(23F77) runtime의 iPhone 17 Pro를 전용 device set에서 기동했다. 전역 Xcode 선택은 바꾸지 않았고 코드 서명·유료 등록·클라우드 빌드·자격 발급은 하지 않았다. 실제 스크린샷에서 TranslaCat 게스트 채팅 홈·로그인 버튼·하단 탭을 확인했으며 오류 overlay는 없었다. 확인 뒤 해당 작업 전용 Simulator가 `Shutdown` 상태임을 확인했다.
+
+使用ツールはジョブ内で選択したXcode `26.6`（17F113）、Ruby `3.3.13`、CocoaPods `1.17.0`。iOS `26.5`（23F77）runtimeのiPhone 17 Proを専用device setで起動した。グローバルXcode選択は変えず、コード署名・有料登録・クラウドビルド・認証情報の発行は行っていない。実際のスクリーンショットではTranslaCatのゲストチャットホーム・ログインボタン・下部タブを確認し、エラーoverlayはなかった。確認後、当該ジョブ専用Simulatorが`Shutdown`状態になったことも確認した。
+
+이번 source check의 API 설정은 `UNSET_IN_EXACT_CHECKS_ADAPTER`였다. native 빌드에서는 공개 API `https://217.142.230.186/api/v1`을 프로세스 환경에만 지정하고, 생성된 공개 설정과 `.app` 내부 `EXConstants.bundle/app.config`에서 일치함을 확인했다. 실제 `.env` 전송은 0개다. JS 코드의 API는 `Constants.expoConfig.extra.apiBaseUrl`에서 읽으므로 `main.jsbundle`에 URL 문자열이 직접 없다는 관측과 구분한다. 설정 환경이 다른 source-check bundle과 native bundle을 동일 산출물로 주장하지 않는다.
+
+source checkのAPI設定は`UNSET_IN_EXACT_CHECKS_ADAPTER`だった。nativeビルドでは公開API `https://217.142.230.186/api/v1`をプロセス環境だけに指定し、生成公開設定と`.app`内の`EXConstants.bundle/app.config`で一致を確認した。実際の`.env`転送は0件。JSは`Constants.expoConfig.extra.apiBaseUrl`からAPIを読むため、`main.jsbundle`にURL文字列が直接ないという観測とは区別する。設定環境の異なるsource-check bundleとnative bundleを同一成果物とは扱わない。
+
+| 근거 / 根拠 | 값 / 値 |
+| --- | --- |
+| native JobId | `20261024T150125788Z-mac-00c8ef20` |
+| source manifest SHA-256 | `95ebd0f961adfe7db49ac3a841447c5bbad3015158478401583bd09e162c8a0d` |
+| 실행 어댑터 / 実行adapter SHA-256 | `cab458fe17605e539dc7f5412089af01424b024cfb7bf1dbb55da882d63ddee0` |
+| worker result SHA-256 | `968341b546b4607be035c4221b6d56456cabe9078703d365c4237f352f7e5810` |
+| `translacat-ios-simulator-arm64.app.zip` SHA-256 | `bfa5d686379355cfb60881a5a8ff1e131a57ab42599cb51e887fb2bc8fc1f888` |
+| `translacat-ios-first-launch.png` SHA-256 | `47d1bd6946aeb2e27a5586ab789c0b643b2347ac6c206cf85c5b802e81d6157d` |
+
+산출물은 코드 서명 없는 Simulator용 Release arm64 `.app.zip`이며 iPhone 설치용 `.ipa`나 TestFlight 배포본이 아니다. 앱 빌드·기동과 전용 Simulator 종료는 00:32~00:42 KST에 성공했다. 공용 proxy의 읽기 파일 경합으로 한때 큐 상태가 `Unconfirmed`에 머물렀으나, 정확한 같은 JobId·token·종료 코드 0·결과 SHA를 대조한 terminal 복구 후 2026-10-25 02:19:33 KST에 `Released`를 확인했다. 같은 job의 정상 결과는 02:21 KST에 회수했다. 최종 worker 상태는 `Finished`·소유 실행 프로세스 0개이며, 해당 proxy 작업 정의도 정리됐다. 담당자의 복구는 해당 소유 proxy만 대상으로 했고 다른 job 변경이나 Mac 프로세스 중단은 없었다. 앱 성공과 뒤늦은 공용 큐 해제를 별도 근거로 남긴다.
+
+成果物はコード署名なしのSimulator用Release arm64 `.app.zip`で、iPhoneインストール用`.ipa`やTestFlight配布版ではない。アプリのビルド・起動と専用Simulatorの終了は00:32~00:42 KSTに成功した。共通proxyの読み取りファイル競合でキュー状態が一時`Unconfirmed`に留まったが、正確な同一JobId・token・終了コード0・結果SHAを照合したterminal復旧後、2026-10-25 02:19:33 KSTに`Released`を確認した。同じjobの通常結果は02:21 KSTに回収した。最終worker状態は`Finished`・所有する実行プロセス0件で、当該proxyのタスク定義も整理済み。担当者の復旧対象は当該所有proxyのみで、他jobの変更やMacプロセス停止はなかった。アプリ成功と後続の共通キュー解放は別々の根拠として残す。
+
+ログイン復帰・写真選択・生年月日picker・エラー表示・キーボード動作を今回のホーム画面確認だけで受け入れ済みとは扱わない。Appleログインは未実装、本番APNsは未検証。実際の登録・メール送信・パスワード変更・退会操作は0件で、実ユーザーデータや本番設定も変更していない。新Android APKは作成せず、ユーザーが省略した実機テストは`WAIVED_BY_USER_NOT_TESTED`のまま保持する。
+
+로그인 복귀·사진 선택·생년월일 picker·오류 표시·키보드 동작을 이번 홈 화면 확인만으로 수락 완료로 표시하지 않는다. Apple 로그인은 미구현이고 운영 APNs는 미검증이다. 실제 가입·메일 발송·비밀번호 변경·탈퇴는 0건이며 실사용자 데이터나 운영 설정도 변경하지 않았다. 새 Android APK는 만들지 않았고 사용자가 생략한 실기기 테스트는 `WAIVED_BY_USER_NOT_TESTED`로 유지한다.
 
 작업별 소스 고정·공식 요건 조사·실제 결과는 현재 workspace의 `.codex-workspace/verification/shared/mobile-ios-free-preparation-20261024/`에 보존한다. 이 문서에 준비 절차가 있다는 사실만으로 공용 실행기·시뮬레이터 빌드가 완료된 것은 아니다.
 
