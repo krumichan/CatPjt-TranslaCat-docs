@@ -81,3 +81,38 @@ source checkのAPI設定は`UNSET_IN_EXACT_CHECKS_ADAPTER`だった。nativeビ�
 작업별 소스 고정·공식 요건 조사·실제 결과는 현재 workspace의 `.codex-workspace/verification/shared/mobile-ios-free-preparation-20261024/`에 보존한다. 이 문서에 준비 절차가 있다는 사실만으로 공용 실행기·시뮬레이터 빌드가 완료된 것은 아니다.
 
 ソース固定・公式要件調査・実結果はworkspaceの`.codex-workspace/verification/shared/mobile-ios-free-preparation-20261024/`へ保全する。本書の手順だけで共通実行器やSimulatorビルドが完了したとは扱わない。
+
+
+## 2026-10-25 큰 글씨·키보드·날짜 선택기 확인 완료 / 大きい文字・キーボード・日付選択の確認完了
+
+24일 이메일 폼 UI와 25일 후속 접근성 보완을 구분한다. 25일 변경은 `EmailAccessScreen.tsx`의 긴 완료 안내를 스크롤 본문으로 옮기고 고정 완료 버튼에만 2배 글자 확대 한도를 지정한 것, 공통 `Button`에 선택적 `maxFontSizeMultiplier` prop을 추가한 것 두 파일이다. 다른 호출부의 기본 글자 확대와 인증·메일·API 로직은 바꾸지 않았다. 원본과 25일 두 파일 전용 patch를 별도 보존했다.
+
+24日のメールフォームUIと25日の追加アクセシビリティ修正を分けて記録する。25日の変更は2ファイルのみ。長い完了案内をスクロール本文へ移し、固定完了ボタンだけ文字拡大を2倍までにし、共通Buttonに任意の `maxFontSizeMultiplier` propを追加した。他の呼出元の既定拡大と認証・メール・APIロジックは変えていない。原本と25日分の2ファイル専用patchを保全した。
+
+固定source206のmanifest SHA256は `a26d6c4d28d6765067a7d8b2f62d62c31c0583b799fa84ea38e24c1dfc22bd7c`。source check229 `20261025T092126995Z-mac-80f59473` はlint/typecheck/598tests（失敗・skip0）/config/Android+iOS JS export/prebuild-no-installを新たに通過した。旧sourceの598件結果の流用ではない。任意のglobal Xcode probeのexit1は保持し、明示DEVELOPER_DIRのnative成功と区別する。
+
+새 고정 소스 206개의 manifest SHA256은 `a26d6c4d28d6765067a7d8b2f62d62c31c0583b799fa84ea38e24c1dfc22bd7c`이다. source check229 `20261025T092126995Z-mac-80f59473`에서 lint/typecheck/598 tests(실패·생략0)/config/Android+iOS JS export/prebuild-no-install을 새로 통과했다. 이전 소스의 결과를 재사용한 것이 아니다. 선택적 전역 Xcode probe exit1을 보존하고 명시 DEVELOPER_DIR로 실행한 native 성공과 구분한다.
+
+새 native230 `20261025T092330629Z-mac-8862fce0`은 Release arm64 Simulator 빌드·기동·전용 UUID 종료와 전체 24단계 exit0/소스 차이0을 확인했다. 원본 결과 SHA256은 `d5f892b4fbddfe55a2bf4c9a5f4f0feb77cb8b82875bb93fe99db64c8dcacdfd`, 앱 ZIP은 `b1a353d70945e40af99c8a57c5241666f8fdf05ce5121a9e5318d9a33b152645`이다. Mach-O arm64/Simulator platform7·내장 공개 API·새 초기 게스트 화면을 독립 대조했다. 공용 proxy의 Unconfirmed는 제품 성공과 별도로 보존했으며 담당의 원소유자 전용 종료 복구 후 18:51:51 KST에 Released, 18:54:15 KST에 같은 job의 정상 결과 회수를 확인했다. 원인은 NonTransientProxyObservationFailure까지만 관측했고 공유 위반 등으로 단정하지 않는다.
+
+native230 `20261025T092330629Z-mac-8862fce0` は新sourceのRelease arm64 Simulatorビルド・起動・専用UUID終了と全24段階exit0/source差分0を確認した。原結果SHA256は `d5f892b4fbddfe55a2bf4c9a5f4f0feb77cb8b82875bb93fe99db64c8dcacdfd`、app ZIPは `b1a353d70945e40af99c8a57c5241666f8fdf05ce5121a9e5318d9a33b152645`。Mach-O arm64/Simulator platform7・埋込公開API・新しい初期guest画面を独立照合した。共通proxyのUnconfirmedは製品成功と分けて保全し、担当の元所有者限定の終了復旧後18:51:51 KSTにReleased、18:54:15 KSTに同jobの通常回収を確認した。原因はNonTransientProxyObservationFailureまでの観測で、共有違反等と断定しない。
+
+UI231 `20261025T095615976Z-mac-42167a49` はログイン・登録・パスワード復旧の3画面×3設定の経路assertion9件と通常文字のキーボード2件を通過した。その後、最大文字でWDAのscroll-to-visible helperがmax scroll countに達してFailed1となった原結果を保持する。UI233 `20261025T100656602Z-mac-4b7c5653` は同じ新appの残り4件だけを、元231のhash付き部分結果を照合して実行しPassed0。自分のScrollView内の限定touch panに替え、最大文字でのキーボード2件と日付pickerのopen/cancel2件を確認した。598tests/native/経路9件/通常キーボード2件を再実行していない。
+
+UI231 `20261025T095615976Z-mac-42167a49`에서 로그인·가입·비밀번호 복구의 3화면×3설정 경로 assertion 9건과 기본 글자 크기 키보드 2건을 통과했다. 이후 최대 글자 크기에서 WDA scroll-to-visible helper가 max scroll count에 도달한 원래 Failed1 결과를 보존한다. UI233 `20261025T100656602Z-mac-4b7c5653`은 같은 새 앱의 남은 4건만, 원231의 해시가 고정된 부분 결과를 대조해 실행하여 Passed0이었다. 자기 ScrollView 안의 제한된 touch pan으로 바꿔 최대 글자 크기 키보드 2건과 날짜 선택기 열기·취소 2건을 확인했다. 소스 검사/native/기존 9화면/기본 키보드를 반복하지 않았다.
+
+기본·최대 글자 크기에서 가입/복구 모두 이메일 입력란과 완료 버튼이 소프트웨어 키보드 위에 있고 서로 겹치지 않았다. 최대 글자 크기 측정은 입력란 하단247pt ≤ 버튼 상단408pt, 버튼 하단483pt < 키보드 상단512pt였다. 날짜 선택기는 정상적으로 열렸고 취소 후 날짜 미선택 placeholder로 돌아왔다. 실제 PNG 15장(초기9+키보드4+picker2)을 직접 검토했다. OS dark 설정에서도 앱 표면은 밝게 표시되어 앱의 어두운 테마 수락을 의미하지 않는다. 큰 제목·본문은 확대·스크롤하며 고정 버튼만 크기를 제한한다.
+
+通常・最大文字の登録/復旧の両方でメール入力と完了ボタンがsoftware keyboardの上にあり、互いに重ならないことを確認した。最大文字では入力下端247pt ≤ ボタン上端408pt、ボタン下端483pt < keyboard上端512pt。pickerは開き、cancel後は未選択placeholderに戻った。実PNG15枚（初期9+keyboard4+picker2）を直接確認した。OS dark設定でもアプリ表面はlightであり、アプリdark themeの受入を意味しない。大きい見出しと本文は拡大・スクロールし、固定ボタンのみ拡大を制限する。
+
+233のSSH timeoutは新jobやworker失敗の根拠にせず同じJobIdのCollectで回収した。原結果SHA256は `cde183cbb8adf45f7a2b5895994e5b3d1cdc4da87c82e249234396b1516c47a2`。終了・共通Released・通常回収・専用Simulator Shutdown・自分のAppium停止・proxy定義削除を確認した。原因を電源/睡眠/IP変更と断定せず、他job・順番・予算・queue/lockの手編集や他processの停止は行っていない。
+
+233의 SSH timeout을 새 job이나 worker 실패의 근거로 삼지 않고 같은 JobId의 Collect로 회수했다. 원본 결과 SHA256은 `cde183cbb8adf45f7a2b5895994e5b3d1cdc4da87c82e249234396b1516c47a2`이다. 종료·공용 Released·정상 회수·전용 Simulator Shutdown·자기 Appium 종료·proxy 정의 삭제를 확인했다. 원인을 전원/수면/IP 변경으로 단정하지 않으며 다른 job·순번·예산·큐/잠금 수동 편집이나 다른 프로세스 종료는 하지 않았다.
+
+이번 확인은 이메일 입력 포커스·스크롤·picker 열기/취소까지다. 실제 메일·가입·비밀번호 변경·탈퇴, 날짜의 연/월/일 전체 선택·적용, 실제 오류 메시지 UI, Google/Apple 로그인 복귀, 운영 APNs, iPhone 실기기/IPA/TestFlight 수락으로 확대하지 않는다. Apple 로그인은 미구현이다. 새 Android APK는 생성하지 않았으며 실기기 검증은 사용자의 `WAIVED_BY_USER_NOT_TESTED`를 유지한다. 유료 Apple/EAS·운영/Git 변경·실제 자격/서비스계정 전송은 0건이고 정책 URL null·법적 초안 local/public 제외를 유지한다.
+
+範囲はメール入力focus/scrollとpicker open/cancelまで。実メール・登録・パスワード変更・退会、日付の年月日全選択/適用、実エラー表示UI、Google/Appleログイン復帰、本番APNs、iPhone実機/IPA/TestFlight受入とは区別する。Appleログインは未実装。新Android APKは作成せず、実機はユーザーの `WAIVED_BY_USER_NOT_TESTED` を維持する。有料Apple/EAS・本番/Git変更・実資格/サービスaccount転送は0件、policy URL nullと法的draftのlocal/public除外も維持する。
+
+검증 원본·실패 이력·날짜별 patch·결합 확인 근거는 `.codex-workspace/verification/shared/mobile-ios-interactive-smoke-20261025/`에 보존한다. 6GiB 점검 예산은 새 범위의 추정치이며 RSS 표본은 공용 CoreSimulator를 제외하므로 실제 총 메모리 피크로 주장하지 않는다. 이 무료 Simulator 단계에는 추가 사용자 직접 조치가 없다.
+
+原本・失敗履歴・日付別patch・結合確認は `.codex-workspace/verification/shared/mobile-ios-interactive-smoke-20261025/` に保全する。6GiB予算は新しい確認範囲の推定であり、RSS標本は共有CoreSimulatorを除くため総メモリpeakとは扱わない。この無料Simulator段階に追加ユーザー操作はない。
