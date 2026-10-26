@@ -39,9 +39,21 @@ Xcode初回設定でログインやライセンス操作が必要なら、具体
 
 ## 검증 상태 / 検証状態
 
-초기 정적 감사에서는 즉시 수정이 필요한 iOS 소스 결함을 확정하지 않았다. iOS 개발용 식별자·scheme, 사진 설명·SecureStore와 브라우저 인증 경로는 기존 설정에 존재한다. 실제 iOS native 컴파일·기동·로그인 복귀·사진 선택·키보드 동작은 별도 실행 근거가 필요하다. 가입 UI의 사용자 APK 실기기 테스트 생략은 성공 판정으로 바꾸지 않는다.
+2026-10-24 19:31 KST에 공용 Mac job `20261024T103037277Z-mac-0f84ace2`가 `Passed`·종료 코드 0으로 완료됐고 큐 예약도 해제됐다. 고정 소스 206개로 lint·typecheck·전체 598개 테스트(실패·생략 0개)·설정·Android/iOS JS export·iOS `prebuild --no-install`을 모두 통과했다. 입력·lockfile 변경과 소스 차이는 0개다. 소스 manifest SHA-256은 `95ebd0f961adfe7db49ac3a841447c5bbad3015158478401583bd09e162c8a0d`다.
 
-初回の静的監査では、直ちに修正が必要なiOSソース欠陥は確定していない。開発用識別子・scheme・写真説明・SecureStore・ブラウザー認証経路は既存設定にある。nativeコンパイル・起動・認証復帰・写真選択・キーボード動作は別途実行証拠が必要。登録UIのユーザー実機テスト省略を成功判定へ置き換えない。
+2026-10-24 19:31 KST、共通Mac job `20261024T103037277Z-mac-0f84ace2`が`Passed`・終了コード0で完了し、キューの予約も解放された。固定ソース206ファイルでlint・typecheck・全598テスト（失敗・省略0件）・設定・Android/iOS JS export・iOS `prebuild --no-install`がすべて通過した。入力・lockfileの変更とソース差分は0件。ソースmanifestのSHA-256は`95ebd0f961adfe7db49ac3a841447c5bbad3015158478401583bd09e162c8a0d`。
+
+実際に生成したプロジェクトではscheme `TranslaCatDev`、bundle identifier `com.krumichan.translacat.dev`、deployment target `16.4`、URL scheme `translacat-dev`・`com.krumichan.translacat.dev`・`exp+translacat-mobile`を確認した。写真ライブラリーの利用説明は設定済みで、カメラ・マイクの利用説明はない。既存通知設定から生成された`aps-environment: development`はAPNs認証情報の発行や本番通知の成功を示さない。
+
+실제 생성한 프로젝트에서 scheme `TranslaCatDev`, bundle identifier `com.krumichan.translacat.dev`, deployment target `16.4`, URL scheme `translacat-dev`·`com.krumichan.translacat.dev`·`exp+translacat-mobile`을 확인했다. 사진 라이브러리 이용 설명은 있고 카메라·마이크 이용 설명은 없다. 기존 알림 설정에서 생성된 `aps-environment: development`는 APNs 자격 발급이나 운영 알림 성공을 의미하지 않는다.
+
+이번 JS 검증은 API 주소를 지정하지 않은 설정으로 실행했다. 이후 Simulator native 빌드는 확정된 공개 API를 별도 실행 설정으로 지정하고 생성 설정·bundle 근거를 남긴다. 이 환경 차이가 있는 두 bundle을 동일한 산출물로 취급하지 않는다.
+
+今回のJS検証はAPIアドレス未指定の設定で実行した。後続のSimulator nativeビルドでは確定した公開APIを実行設定として明示し、生成設定とbundleの証拠を残す。環境の異なる二つのbundleを同一成果物とは扱わない。
+
+실제 iOS native 컴파일·Simulator 기동·로그인 복귀·사진 선택·키보드 동작은 아직 검증하지 않았다. 전체 Xcode와 Simulator 런타임 준비가 남아 있으며, 무료 Apple 계정으로 Xcode 26.6을 직접 다운로드하는 조치는 이미 사용자에게 안내했다. 이 UI 변경의 새 Android APK도 만들지 않았다. 사용자가 생략한 APK 실기기 테스트는 `WAIVED_BY_USER_NOT_TESTED`로 보존한다.
+
+iOS nativeコンパイル・Simulator起動・認証復帰・写真選択・キーボード動作は未検証。full XcodeとSimulator runtimeの準備が残り、無料Apple AccountによるXcode 26.6のダウンロード操作はすでにユーザーへ案内した。このUI変更の新Android APKも作成していない。ユーザーが省略したAPK実機テストは`WAIVED_BY_USER_NOT_TESTED`として保持する。
 
 작업별 소스 고정·공식 요건 조사·실제 결과는 현재 workspace의 `.codex-workspace/verification/shared/mobile-ios-free-preparation-20261024/`에 보존한다. 이 문서에 준비 절차가 있다는 사실만으로 공용 실행기·시뮬레이터 빌드가 완료된 것은 아니다.
 
