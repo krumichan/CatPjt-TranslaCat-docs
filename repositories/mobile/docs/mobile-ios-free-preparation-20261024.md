@@ -116,3 +116,43 @@ UI231 `20261025T095615976Z-mac-42167a49`에서 로그인·가입·비밀번호 �
 검증 원본·실패 이력·날짜별 patch·결합 확인 근거는 `.codex-workspace/verification/shared/mobile-ios-interactive-smoke-20261025/`에 보존한다. 6GiB 점검 예산은 새 범위의 추정치이며 RSS 표본은 공용 CoreSimulator를 제외하므로 실제 총 메모리 피크로 주장하지 않는다. 이 무료 Simulator 단계에는 추가 사용자 직접 조치가 없다.
 
 原本・失敗履歴・日付別patch・結合確認は `.codex-workspace/verification/shared/mobile-ios-interactive-smoke-20261025/` に保全する。6GiB予算は新しい確認範囲の推定であり、RSS標本は共有CoreSimulatorを除くため総メモリpeakとは扱わない。この無料Simulator段階に追加ユーザー操作はない。
+
+## 2026-10-27 무료 iPhone 실기기 설치 / 無料iPhone実機インストール
+
+24일 이메일 UI·25일 접근성 수정과 27일 실기기 검증을 구분한다. 새 제품 소스 변경은 0개다. 최신 검증 소스206(manifest `a26d6c4d28d6765067a7d8b2f62d62c31c0583b799fa84ea38e24c1dfc22bd7c`)과 원본/고정 사본의 해시가 일치했다. 이전598검사와 Simulator 빌드를 반복하지 않았다.
+
+24日のメールUI・25日のアクセシビリティ修正と27日の実機検証を区別する。新規の製品ソース変更は0件。最新の検証ソース206（manifest `a26d6c4d28d6765067a7d8b2f62d62c31c0583b799fa84ea38e24c1dfc22bd7c`）と原本/固定コピーのhash一致を確認した。既存598検査・Simulatorビルドは繰り返していない。
+
+공용 Mac #363 `20261026T231240881Z-mac-0a176e59`에서 08:12~08:17 KST에 iPhoneOS Release arm64 빌드와 strict/deep 서명 검사가 exit0이었다. 뒤이어 공개 인증서 추출의 optional CLI 인자를 분리한 검증도구 오류로 worker는 Failed1이 됐다. 원래 실패/성공 단계·결과를 보존했고, `--extract-certificates=<own prefix>`로 고친 후 #364 `20261026T232313013Z-mac-d79c181f`는 같은 앱의 검증·설치·기동·readback만 실행했다. #364에서 새 빌드·재서명은0이다.
+
+共通Mac #363 `20261026T231240881Z-mac-0a176e59`は08:12~08:17 KSTにiPhoneOS Release arm64ビルドとstrict/deep署名検証がexit0だった。後続の公開証明書抽出でoptional CLI引数を分離した検証ツールの誤りによりworkerはFailed1となった。原失敗/成功段階を保全し、`--extract-certificates=<own prefix>`に修正した#364 `20261026T232313013Z-mac-d79c181f`では同一appの検証・インストール・起動・readbackのみ実行した。#364の新規ビルド・再署名は0件。
+
+08:23 KST에 동일 USB iPhone으로 `TranslaCat (Dev)` (`com.krumichan.translacat.freetest`, version0.1.0) 설치와 해당bundle readback이 exit0이었다. 실제 Mach-O arm64/iPhoneOS platform2, 기존 인증서 일치, profile의 동일 기기·team·정확한 app identifier·유효기간, 내장 공개 API `https://217.142.230.186/api/v1`과 JS bundle을 확인했다. 유료 등록 없이 기존 Personal Team 인증서/자동 provisioning을 사용했다. 무료 테스트 사본의 생성된 native entitlement에서만 APNs를 제외했으며 제품의 푸시 소스는 바꾸지 않았다.
+
+08:23 KST、同じUSB iPhoneへの`TranslaCat (Dev)`（`com.krumichan.translacat.freetest`、version0.1.0）のインストールと該当bundleのreadbackがexit0だった。Mach-O arm64/iPhoneOS platform2、既存証明書一致、profileの同一端末・team・正確なapp identifier・有効期限、埋込公開API `https://217.142.230.186/api/v1`とJS bundleを確認した。有料登録なしで既存Personal Team証明書/自動provisioningを使用。無料テストコピーの生成native entitlementからのみAPNsを除外し、製品pushソースは変更していない。
+
+実行要求はSecurity/RequestDeniedでexit1となり、OSは署名・entitlement・未信頼profileの可能性を併記した。ローカル署名/profile検証は通過したため、iPhoneの「設定→一般→VPNとデバイス管理→自分の開発者App→信頼」を案内した。その後ユーザー本人から「信頼してappが開いた」と確認を得た。同じインストール済みappの実機手動起動は確認済みで、自動launchのexit1を事後成功へ書き換えない。#364全体はFailed1のまま保持し、インストール成功を起動成功・ユーザー受入完了へ拡大しない。再ビルド・再インストールは必要条件にしない。
+
+실행 요청은 Security/RequestDenied로 exit1이었고 OS는 서명·entitlement·미신뢰 profile 가능성을 함께 표시했다. 로컬 서명/profile 검증은 통과했으므로 iPhone의 ‘설정→일반→VPN 및 기기 관리→본인 개발자 앱→신뢰’를 안내했다. 이후 사용자가 직접 ‘신뢰했고 앱이 열렸어’라고 확인했다. 설치된 같은 앱의 실기기 수동 기동은 확인됐으며, 자동 launch exit1을 사후 성공으로 바꾸지는 않는다. #364 전체는 Failed1을 유지하며 설치 성공을 실행 성공·사용자 수락으로 확대하지 않는다. 재빌드·재설치를 선행조건으로 만들지 않는다.
+
+| 근거 / 根拠 | 값 / 値 |
+| --- | --- |
+| Native363 original result SHA256 | `ef0dd87e974bd5ff8133b5d5688e1e03097f20a0f54ae4a30c351d256b6fafbd` |
+| Finalization364 result SHA256 | `fbff22ea932d98174c8bc5793fb5bf24ca4be31da0f9551c27f6fef028a5f89d` |
+| Signed executable SHA256 | `91cb4a7cfe5d59d23bb34b746abe3bb1bcbe4af4b3da07fcdda845615fa8d639` |
+| Embedded `main.jsbundle` SHA256 | `baf3a9157244aaa8eb13fafcd54456ca74d2b3f591d73066f58fe059188ba527` |
+| Signed app file inventory SHA256 | `da8b0b94e3069be5001665f976bfac86b6d97d36db70db570f3d4412086b6e7d` (162files / 44,726,557 logical bytes) |
+| Profile expiry KST / 有効期限 | `2026-11-02 22:15:50 +09:00` |
+
+363/364는 모두 실제 종료·공용 Released·정상 회수·Aqua helper/service 종료·자기 proxy 삭제를 확인했다. 기존 source-check API미지정과 native API·free identifier 설정 차이를 보존한다. 실기기 수동 기동은 사용자 확인을 받았다. 구체적인 화면 동작·메일/가입/비밀번호 변경/탈퇴·Apple로그인·APNs는 이번 확인 범위 밖이며 TestFlight/AppStore/유료EAS/새 Android APK는 실행하지 않았다. Android 실기기는 사용자의 `WAIVED_BY_USER_NOT_TESTED` 그대로다. Git·운영DB/BE/FE/edge·전역SSH/Xcode·키체인 정책을 바꾸지 않았고 개인키/실제.env를 전송하지 않았다. 법적 초안 local/public 제외와 정책URL null을 유지한다.
+
+363/364は終了・共通Released・通常回収・Aqua helper/service終了・自己proxy削除を確認済み。source-checkのAPI未指定とnativeのAPI/free identifier設定差を保持する。実機の手動起動はユーザー確認済み。詳細な画面動作・実メール/登録/パスワード変更/退会・Appleログイン・APNsは今回の確認範囲外。TestFlight/AppStore/有料EAS/新Android APKは実行していない。Android実機はユーザーの`WAIVED_BY_USER_NOT_TESTED`を維持。Git・本番DB/BE/FE/edge・グローバルSSH/Xcode・キーチェーンpolicy変更、秘密鍵/実.env転送は0件。法的draftのlocal/public除外・policy URL nullも維持する。
+
+原結果・署名app inventory・所有path限定の容量/保有理由/整理条件は `.codex-workspace/verification/shared/mobile-ios-personal-device-20261026/iphone-installed-verification-v1.json` と接続receiptへ記録。現在の署名appはMac上のDerivedData内にのみ保有し、cacheの整理はapp/manifest/receipt保全と明示範囲の確認後に分けて行う。今回は削除0件。
+
+원본 결과·서명 앱 inventory·자기 경로 한정 용량/보유 이유/정리 조건은 `.codex-workspace/verification/shared/mobile-ios-personal-device-20261026/iphone-installed-verification-v1.json`과 연결 receipt에 기록했다. 현재 서명 앱은 Mac DerivedData 안에만 보유하므로 앱/manifest/receipt 보존과 명시적 범위 확인 후 캐시 정리를 별도로 다룬다. 이번 삭제는0개다.
+
+
+無料Personal Teamの実機インストールと手動起動まで完了し、現時点の必須ユーザー操作はない。Release appにJS bundleを内蔵しておりMetroやUSB接続を実行条件にしていない。署名profile有効期限は上表の実測値で、期限後に継続する際は再署名/再インストールが必要。証拠は同taskの`iphone-human-trust-and-open-confirmed-v1.json`と`completion.json`へ接続する。
+
+무료 Personal Team 실기기 설치와 수동 기동까지 완료했으며 지금 필요한 추가 사용자 조치는 없다. Release 앱에 JS bundle을 내장하므로 Metro나 USB 연결을 실행 조건으로 두지 않는다. 서명 profile 유효기간은 위 표의 실측값이며 만료 후 계속 테스트하려면 재서명/재설치가 필요하다. 근거는 같은 task의 `iphone-human-trust-and-open-confirmed-v1.json`과 `completion.json`에 연결한다.
