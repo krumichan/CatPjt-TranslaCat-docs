@@ -1,0 +1,37 @@
+name: Account book background analysis candidate verification
+
+on:
+  push:
+    branches: [ci/account-book-analysis-jobs-20261110]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 3
+          persist-credentials: false
+      - name: Validate the exact bilingual contract
+        run: |
+          test "$(git rev-parse HEAD^)" = "4b3f38af4df7f810e93cac1fcfb4ce637e0de3f2"
+          git checkout --detach 4b3f38af4df7f810e93cac1fcfb4ce637e0de3f2
+          git diff --check HEAD^ HEAD
+          python3 - <<'PY'
+          import hashlib
+          import re
+          from pathlib import Path
+
+          path = Path('repositories/shared/docs/account-book-spending-analysis.md')
+          raw = path.read_bytes()
+          assert hashlib.sha256(raw).hexdigest() == '9787e70557ba9aaea7321066556d0cc51fbdee369cbca32ede063b6a40a0fe0f'
+          body = raw.decode('utf-8')
+          assert re.search(r'^# .*가계부', body, re.M)
+          assert re.search(r'^## .*家計簿', body, re.M)
+          assert len(re.findall(r'^\s*```', body, re.M)) % 2 == 0
+          assert 'spending-analysis/jobs' in body
+          PY
