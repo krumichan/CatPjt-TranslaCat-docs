@@ -49,7 +49,11 @@
 | API | 동작 |
 | --- | --- |
 | `GET /api/v1/account-books/{id}/spending-analysis/snapshot` | 기간의 지문·거래 수·총지출 조회 |
-| `POST /api/v1/account-books/{id}/spending-analysis` | 명시적 생성 또는 재분석 후 새 이력 저장 |
+| `POST /api/v1/account-books/{id}/spending-analysis/jobs` | 백그라운드 분석 접수. 다른 활성 작업이 있으면 409 반환 |
+| `GET /api/v1/account-books/{id}/spending-analysis/jobs/current` | 현재 활성 작업 또는 내가 요청한 마지막 작업 조회 |
+| `GET /api/v1/account-books/{id}/spending-analysis/jobs/{jobId}` | 작업 상태와 완료된 보고서 ID 조회 |
+| `POST /api/v1/account-books/{id}/spending-analysis/jobs/{jobId}/cancel` | 현재 가계부 소유자만 취소 |
+| `POST /api/v1/account-books/{id}/spending-analysis` | 기존 모바일의 동기 응답. 동일한 가계부별 활성 슬롯 사용 |
 | `GET /api/v1/account-books/{id}/spending-analysis/history?page=0&size=10` | 생성 시각 역순의 이력 목록 |
 | `GET /api/v1/account-books/{id}/spending-analysis/history/{analysisId}` | 생성 당시의 결과와 추가 설명 조회 |
 
@@ -57,21 +61,25 @@
 
 응답은 정책 버전, 기간, 통화, 범위, 요약, 조언, 반영한 코멘트, 생성 시각, 원장 지문, `analysisId`와 예상액을 포함한다. 각 조언에는 의견, 현재·과거 근거 거래와 계산 대상 거래의 생성 당시 스냅샷을 저장한다. 저장된 결과는 이후 원장 수정으로 바꾸지 않으며, 현재 지문과 다르면 오래된 결과임을 표시한다. 화면에서 근거 거래는 기존 거래 카드·표 형식으로 읽고 상세보기만 허용한다.
 
-AI 호출 중에는 DB 트랜잭션을 유지하지 않는다. 결과 저장 전에 원장 지문과 접근권한을 다시 확인하며 변경된 원장은 `409 STALE_SNAPSHOT`으로 처리한다. 분석은 대기까지 포함해 240초, BE의 AI 서버 요청은 250초로 제한한다. 분석 경로를 중계하는 프록시도 해당 예산을 지원해야 한다.
+AI 호출 중에는 DB 트랜잭션을 유지하지 않는다. 백그라운드 결과에는 작업이 읽은 거래와 기준 시각 `snapshotAt`을 보존한다. 결과를 열 때 현재 지문과 다르면 재분석 안내를 표시한다. 기존 동기 호출은 원장이 바뀌면 `409 STALE_SNAPSHOT`을 반환한다. AI 내부의 대기·분석은 240초, BE의 AI 서버 요청은 250초로 제한한다.
 
-웹의 분석 생성·스냅샷·이력 목록·이력 상세 네 경로는 공개 build 변수 `NEXT_PUBLIC_ACCOUNT_BOOK_ANALYSIS_API_URL`로 별도 HTTPS API base(`/api/v1` 포함)를 지정할 수 있다. 미설정·빈 값이면 기존 `NEXT_PUBLIC_API_URL`을 사용하며, 다른 업무 API와 서버 인증용 `API_URL`은 유지한다. 지정한 값은 HTTPS·`/api/v1` 경로여야 하고 자격증명·쿼리·fragment를 포함할 수 없다. 기존 `apiClient`의 세션·권한·취소 처리를 통과한 뒤 주소만 선택한다.
+DB는 가계부별로 `QUEUED`, `RUNNING`, `CANCELING` 상태를 합쳐 하나만 허용한다. 소유자 취소는 대기 중인 작업을 즉시 종료하고, 이미 실행 중인 작업은 외부 호출이 정리될 때까지 슬롯을 유지한다. 늦게 도착한 결과는 이력에 추가하지 않는다. 서버 재기동 후 만료된 실행은 재호출하지 않는다. 완료 상태, 보고서 이력, 요청자 한 명의 TranslaCat 활동 알림은 같은 트랜잭션으로 저장한다. 알림은 해당 보고서를 연다.
 
-운영의 분석 전용 값은 `https://217.142.230.186/api/v1`이다. 배포 담당이 이 원점의 신뢰 가능한 TLS와 네 경로의 CORS·OPTIONS 및 260초 중계 예산을 검증한 뒤 Production build에 변수를 설정하고 FE를 빌드한다. runtime 변수만 바꾸어 기존 browser bundle이 갱신됐다고 간주하지 않는다. 원점 변경 시에는 명시한 build 설정도 함께 갱신한다.
+웹의 분석 작업·스냅샷·이력 API는 공개 build 변수 `NEXT_PUBLIC_ACCOUNT_BOOK_ANALYSIS_API_URL`로 별도 HTTPS API base(`/api/v1` 포함)를 지정할 수 있다. 미설정·빈 값이면 기존 `NEXT_PUBLIC_API_URL`을 사용하며, 다른 업무 API와 서버 인증용 `API_URL`은 유지한다. 지정한 값은 HTTPS·`/api/v1` 경로여야 하고 자격증명·쿼리·fragment를 포함할 수 없다. 기존 `apiClient`의 세션·권한·취소 처리를 통과한 뒤 주소만 선택한다.
+
+운영의 분석 전용 값은 `https://217.142.230.186/api/v1`이다. 배포 담당이 이 원점의 신뢰 가능한 TLS와 분석 경로의 CORS·OPTIONS 및 기존 동기 요청의 260초 중계 예산을 검증한 뒤 Production build에 변수를 설정하고 FE를 빌드한다. runtime 변수만 바꾸어 기존 browser bundle이 갱신됐다고 간주하지 않는다. 원점 변경 시에는 명시한 build 설정도 함께 갱신한다.
 
 ## 저장과 운영 반영
 
 `scripts/sql/20261105_account_book_spending_analysis.sql`의 `account_book_spending_analysis` 테이블이 필요하다. 가계부 ID, 생성자 ID, 생성 시각과 결과 JSON을 저장하고, 가계부별 생성 시각 조회를 인덱스로 지원한다. 가계부가 물리 삭제되면 외래키로 분석 이력도 삭제한다.
 
+백그라운드 작업에는 `scripts/sql/20261110_account_book_spending_analysis_jobs.sql`을 적용한다. 운영 반영 순서는 DB 마이그레이션, BE, FE 순이다. 완료되거나 취소된 작업은 코멘트를 포함한 임시 요청 본문을 지운다.
+
 이력에는 거래와 코멘트가 들어 있으므로 가계부 데이터와 같은 접근 범위와 보관 기준을 적용한다. 입력·공급자 응답 원문·키를 오류 본문이나 일반 로그에 남기지 않는다. 거래 필드와 코멘트는 분석 대상 데이터이며 시스템 지시로 실행하지 않는다.
 
-분석 생성·스냅샷·이력 목록·상세 경로의 일반 HTTP 로그는 `SPENDING_ANALYSIS_REDACTED`로 요청·응답 본문과 사용자·장부·분석 식별자를 가린다. 실패 진단은 BE의 요청 구성·전송·응답 확인·역직렬화 단계, AI의 문맥 준비·생성·검토·결과 검증 단계와 고정 오류코드·HTTP 상태·경과시간·예외 클래스만 기록한다. AI 스키마의 enum 개수와 구매 묶음 건수는 숫자로 기록하며 예외 메시지·traceback·입력·외부 응답 원문은 기록하지 않는다.
+분석 작업·스냅샷·이력 경로의 일반 HTTP 로그는 `SPENDING_ANALYSIS_REDACTED`로 요청·응답 본문과 사용자·장부·분석 식별자를 가린다. 실패 진단은 BE의 요청 구성·전송·응답 확인·역직렬화 단계, AI의 문맥 준비·생성·검토·결과 검증 단계와 고정 오류코드·HTTP 상태·경과시간·예외 클래스만 기록한다. AI 스키마의 enum 개수와 구매 묶음 건수는 숫자로 기록하며 예외 메시지·traceback·입력·외부 응답 원문은 기록하지 않는다.
 
-운영 반영은 배포 담당 채팅에서 migration과 AI·BE 계약의 전환 순서를 확인해 수행한다. 개발 검증 환경에서는 운영 원장을 읽기 전용 드라이버로 연결하고 새 이력만 별도의 로컬 H2에 저장한다. 이 로컬 분리는 운영 migration을 실행한 근거가 아니다.
+백그라운드 작업의 동시성·취소·마이그레이션 검증에는 가상 거래와 전용 로컬 MySQL을 사용한다. 운영 반영은 배포 담당 채팅에서 수행한다.
 
 ## 순차 시뮬레이션의 해석
 
@@ -130,7 +138,11 @@ AI 호출 중에는 DB 트랜잭션을 유지하지 않는다. 결과 저장 전
 | API | 動作 |
 | --- | --- |
 | `GET /api/v1/account-books/{id}/spending-analysis/snapshot` | 期間のフィンガープリント、取引数、支出総額を取得する |
-| `POST /api/v1/account-books/{id}/spending-analysis` | 明示的な生成または再分析を行い、新しい履歴を保存する |
+| `POST /api/v1/account-books/{id}/spending-analysis/jobs` | バックグラウンド分析を受け付ける。実行中のジョブがある場合は409 |
+| `GET /api/v1/account-books/{id}/spending-analysis/jobs/current` | 進行中のジョブまたは自分が依頼した最新のジョブを取得する |
+| `GET /api/v1/account-books/{id}/spending-analysis/jobs/{jobId}` | ジョブの状態と完了したレポートのIDを取得する |
+| `POST /api/v1/account-books/{id}/spending-analysis/jobs/{jobId}/cancel` | 現在の家計簿所有者だけが取り消せる |
+| `POST /api/v1/account-books/{id}/spending-analysis` | 既存モバイル向けの同期応答。家計簿単位の実行枠を共有する |
 | `GET /api/v1/account-books/{id}/spending-analysis/history?page=0&size=10` | 生成時刻の降順で履歴を一覧表示する |
 | `GET /api/v1/account-books/{id}/spending-analysis/history/{analysisId}` | 生成当時の結果と補足を取得する |
 
@@ -138,21 +150,25 @@ AI 호출 중에는 DB 트랜잭션을 유지하지 않는다. 결과 저장 전
 
 応答には、方針のバージョン、期間、通貨、対象範囲、要約、助言、反映したコメント、生成時刻、元帳のフィンガープリント、`analysisId`、見込み額を含める。各助言には、見解、現在と過去の根拠取引、計算対象取引の生成当時のスナップショットを保存する。保存済みの結果を後の元帳修正で書き換えず、現在のフィンガープリントと異なる場合は古い結果であることを表示する。画面では既存の取引カード・表形式で根拠取引を表示し、操作は詳細表示だけに限定する。
 
-AI呼び出し中はDBトランザクションを維持しない。結果の保存前に元帳のフィンガープリントとアクセス権限を再確認し、元帳が変更されていた場合は`409 STALE_SNAPSHOT`として扱う。分析は待機を含めて240秒、BEからAIサーバーへのリクエストは250秒に制限する。分析経路を中継するプロキシも、この時間枠に対応する必要がある。
+AI呼び出し中はDBトランザクションを維持しない。バックグラウンド分析は読み取った取引と基準時刻 `snapshotAt` を保存する。現在の取引と異なる場合、レポートに再分析の案内を表示する。従来の同期呼び出しでは元帳の変更時に `409 STALE_SNAPSHOT` を返す。AI内の待機と分析は240秒、BEからAIサーバーへのリクエストは250秒に制限する。
 
-Webの分析生成・スナップショット・履歴一覧・履歴詳細の4経路は、公開build変数`NEXT_PUBLIC_ACCOUNT_BOOK_ANALYSIS_API_URL`で個別のHTTPS API base（`/api/v1`を含む）を指定できる。未設定・空白の場合は既存の`NEXT_PUBLIC_API_URL`を使用し、ほかの業務APIとサーバー認証用`API_URL`は維持する。指定値にはHTTPS・`/api/v1`を使い、認証情報・クエリ・fragmentを含めない。既存の`apiClient`によるセッション・権限・キャンセル処理を通過した後、接続先だけを選ぶ。
+DBは家計簿ごとに `QUEUED`、`RUNNING`、`CANCELING` を合わせて1件に制限する。所有者が待機中の分析を取り消すと直ちに終了する。開始済みの呼び出しは終了まで実行枠を保持し、遅れて戻った結果は保存しない。再起動後に期限切れのジョブを再実行しない。完了状態、レポート履歴、依頼者だけに届くTranslaCatのアクティビティ通知を同じトランザクションで保存する。通知から対象レポートを開ける。
 
-本番の分析専用値は`https://217.142.230.186/api/v1`とする。デプロイ担当がこの接続先の信頼できるTLS、4経路のCORS・OPTIONS、260秒の中継時間枠を検証してからProduction buildに変数を設定し、FEをビルドする。runtime変数の変更だけで既存のbrowser bundleが更新されたとは扱わない。接続先を変える場合は明示したbuild設定も更新する。
+Webの分析ジョブ、スナップショット、履歴のAPIは、公開build変数`NEXT_PUBLIC_ACCOUNT_BOOK_ANALYSIS_API_URL`で個別のHTTPS API base（`/api/v1`を含む）を指定できる。未設定・空白の場合は既存の`NEXT_PUBLIC_API_URL`を使用し、ほかの業務APIとサーバー認証用`API_URL`は維持する。指定値にはHTTPS・`/api/v1`を使い、認証情報・クエリ・fragmentを含めない。既存の`apiClient`によるセッション・権限・キャンセル処理を通過した後、接続先だけを選ぶ。
+
+本番の分析専用値は`https://217.142.230.186/api/v1`とする。デプロイ担当がこの接続先の信頼できるTLS、分析経路のCORS・OPTIONSと従来の同期呼び出しの260秒の中継時間枠を検証してからProduction buildに変数を設定し、FEをビルドする。runtime変数の変更だけで既存のbrowser bundleが更新されたとは扱わない。接続先を変える場合は明示したbuild設定も更新する。
 
 ### 保存と本番反映
 
 `scripts/sql/20261105_account_book_spending_analysis.sql`の`account_book_spending_analysis`テーブルを必要とする。家計簿ID、生成者ID、生成時刻、結果JSONを保存し、家計簿ごとの生成時刻による検索をインデックスで支援する。家計簿が物理削除された場合は、外部キーによって分析履歴も削除する。
 
+バックグラウンド分析には `scripts/sql/20261110_account_book_spending_analysis_jobs.sql` を適用する。本番反映はDBマイグレーション、BE、FEの順に行う。終了したジョブからは補足を含む一時リクエスト本文を削除する。
+
 履歴には取引とコメントが含まれるため、家計簿データと同じアクセス範囲と保管基準を適用する。入力、プロバイダー応答の原文、キーをエラー本文や通常のログに残さない。取引フィールドとコメントは分析対象のデータであり、システムへの指示として実行しない。
 
-分析生成・スナップショット・履歴一覧・詳細経路の通常HTTPログは`SPENDING_ANALYSIS_REDACTED`でリクエスト・レスポンス本文と利用者・家計簿・分析の識別子を伏せる。失敗診断には、BEのリクエスト構成・送信・応答確認・デシリアライズ段階、AIの文脈準備・生成・検証・結果確認段階と固定エラーコード・HTTP状態・経過時間・例外クラスだけを記録する。AIスキーマのenum数と購入グループ数は数値で記録し、例外メッセージ・traceback・入力・外部応答の原文は記録しない。
+分析ジョブ・スナップショット・履歴経路の通常HTTPログは`SPENDING_ANALYSIS_REDACTED`でリクエスト・レスポンス本文と利用者・家計簿・分析の識別子を伏せる。失敗診断には、BEのリクエスト構成・送信・応答確認・デシリアライズ段階、AIの文脈準備・生成・検証・結果確認段階と固定エラーコード・HTTP状態・経過時間・例外クラスだけを記録する。AIスキーマのenum数と購入グループ数は数値で記録し、例外メッセージ・traceback・入力・外部応答の原文は記録しない。
 
-本番反映は、デプロイ担当チャットでmigrationとAI・BE契約の切り替え順序を確認して実施する。開発検証環境では、本番の元帳を読み取り専用ドライバーで接続し、新しい履歴だけを別のローカルH2に保存する。このローカル環境の分離は、本番のmigrationを実行済みであることを示すものではない。
+バックグラウンドジョブの同時実行・取り消し・マイグレーションの検証には、架空の取引と専用のローカルMySQLを使う。本番反映はデプロイ担当チャットで実施する。
 
 ### 順次シミュレーションの解釈
 
