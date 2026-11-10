@@ -1,0 +1,37 @@
+name: Account book v6 candidate verification
+
+on:
+  push:
+    branches: [ci/account-book-analysis-v6-20261108]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 3
+          persist-credentials: false
+      - name: Validate the exact bilingual contract
+        run: |
+          test "$(git rev-parse HEAD^)" = "8a52fc5701eefad6ba02ac277f86482b923662c9"
+          git checkout --detach 8a52fc5701eefad6ba02ac277f86482b923662c9
+          git diff --check HEAD^ HEAD
+          python3 - <<'PY'
+          import hashlib
+          import re
+          from pathlib import Path
+
+          path = Path('repositories/shared/docs/account-book-spending-analysis.md')
+          raw = path.read_bytes()
+          assert hashlib.sha256(raw).hexdigest() == '094d9f0b2f4b9b056fda8176905eeada7135ebf3fb196e2181788474ea085398'
+          body = raw.decode('utf-8')
+          assert re.search(r'^# .*가계부', body, re.M)
+          assert re.search(r'^## .*家計簿', body, re.M)
+          assert len(re.findall(r'^\s*```', body, re.M)) % 2 == 0
+          assert body.count('recurring-choice-v6') >= 2
+          PY
